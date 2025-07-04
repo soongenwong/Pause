@@ -29,9 +29,33 @@
 		41143E442E188C39006A68C6 /* PauseUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PauseUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		41143E852E188EF8006A68C6 /* Exceptions for "Pause" folder in "Pause" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				secrets.plist,
+			);
+			target = 41143E2C2E188C37006A68C6 /* Pause */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		41143E862E188EF8006A68C6 /* Exceptions for "Pause" folder in "Compile Sources" phase from "Pause" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 41143E292E188C37006A68C6 /* Sources */;
+			membershipExceptions = (
+				secrets.plist,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		41143E2F2E188C37006A68C6 /* Pause */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				41143E852E188EF8006A68C6 /* Exceptions for "Pause" folder in "Pause" target */,
+				41143E862E188EF8006A68C6 /* Exceptions for "Pause" folder in "Compile Sources" phase from "Pause" target */,
+			);
 			path = Pause;
 			sourceTree = "<group>";
 		};

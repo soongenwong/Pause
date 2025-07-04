@@ -11,7 +11,7 @@ import SwiftUI
 struct PauseApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            PauseView()
         }
     }
 }
