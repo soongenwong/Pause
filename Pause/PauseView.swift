@@ -1,34 +1,29 @@
 import SwiftUI
 
-// MARK: - Groq API Models
+// MARK: - Groq API Models (No changes needed here)
 
-// Represents a message in the chat conversation
 struct GroqMessage: Codable {
     let role: String
     let content: String
 }
 
-// Represents the request body for the Groq chat completions API
 struct GroqChatRequest: Codable {
     let messages: [GroqMessage]
     let model: String
-    let temperature: Double? // Optional: controls randomness
-    let max_tokens: Int?     // Optional: limits response length
-    let stream: Bool         // Must be false for non-streaming response
+    let temperature: Double?
+    let max_tokens: Int?
+    let stream: Bool
+    let stop: [String]?
 }
 
-// Represents the response from the Groq chat completions API
 struct GroqChatResponse: Codable {
     let choices: [GroqChoice]
     let model: String
-    // Add other fields if needed, like id, object, created, usage, system_fingerprint
 }
 
-// Represents a choice within the Groq chat completions response
 struct GroqChoice: Codable {
     let message: GroqMessage
     let index: Int
-    // Add other fields if needed, like logprobs, finish_reason
 }
 
 // MARK: - PauseView
@@ -44,7 +39,6 @@ struct PauseView: View {
 
     private let groqAPIKey: String
 
-    // Initialize the API key from secrets.plist
     init() {
         guard let path = Bundle.main.path(forResource: "secrets", ofType: "plist"),
               let dict = NSDictionary(contentsOfFile: path) as? [String: Any] else {
@@ -60,33 +54,31 @@ struct PauseView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(gradient: Gradient(colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)]), startPoint: .topLeading, endPoint: .bottomTrailing)
+            LinearGradient(gradient: Gradient(colors: [Color(red: 240/255, green: 240/255, blue: 250/255), Color(red: 230/255, green: 220/255, blue: 250/255)]), startPoint: .topLeading, endPoint: .bottomTrailing)
                 .ignoresSafeArea()
 
             VStack(spacing: 40) {
                 Spacer()
 
-                // MARK: - Question/Loading/Error Display Area
                 Group {
                     if isLoading {
                         ProgressView("Generating question...")
                             .font(.title2)
                             .foregroundColor(.gray)
                     } else if let error = errorMessage {
-                        Text("Error: \(error)")
+                        Text(error) // Display the user-friendly error
                             .font(.headline)
                             .foregroundColor(.red)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
                     } else if let question = currentQuestion {
                         Text(question)
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.purple)
+                            .font(.system(size: 38, weight: .bold))
+                            .foregroundColor(Color(red: 153/255, green: 51/255, blue: 204/255))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
                             .transition(.opacity.combined(with: .scale))
-                            .id(question) // Key for animation on change
+                            .id(question)
                     } else {
                         Text("Tap to get a thought-provoking question.")
                             .font(.title2)
@@ -96,11 +88,9 @@ struct PauseView: View {
                             .transition(.opacity)
                     }
                 }
-                .frame(minHeight: 120) // Consistent height for display area
+                .frame(minHeight: 180)
 
-                // MARK: - "Before You Scroll" Button
                 Button {
-                    // Start the asynchronous task to fetch the question
                     fetchGroqQuestion()
                 } label: {
                     Text("Before You Scroll")
@@ -109,11 +99,11 @@ struct PauseView: View {
                         .foregroundColor(.white)
                         .padding(.vertical, 20)
                         .padding(.horizontal, 50)
-                        .background(Capsule().fill(Color.blue))
+                        .background(Capsule().fill(Color(red: 66/255, green: 133/255, blue: 244/255)))
                         .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
                 }
                 .buttonStyle(.plain)
-                .disabled(isLoading) // Disable button while loading
+                .disabled(isLoading)
 
                 Spacer()
             }
@@ -124,28 +114,28 @@ struct PauseView: View {
     // MARK: - Networking Function
 
     private func fetchGroqQuestion() {
-        // Reset states
         isLoading = true
         errorMessage = nil
-        currentQuestion = nil // Clear previous question when fetching new one
+        currentQuestion = nil
 
-        // Define the prompt for Groq API
-        let prompt = "I'm about to open a social media app. Give me one concise, thought-provoking question that makes me reconsider if this is the best use of my time right now. Do not include any introductory or concluding phrases, just the question itself."
+        let userPrompt = "I'm about to open a social media app. Generate a single, concise, thought-provoking question that makes me reconsider if this is the best use of my time right now. The question must be grammatically complete and end with a question mark. Avoid any introductory phrases, conversational fillers, or concluding remarks."
 
-        // Construct the API request body
         let messages = [
-            GroqMessage(role: "system", content: "You are a helpful assistant specialized in self-reflection prompts."),
-            GroqMessage(role: "user", content: prompt)
+            GroqMessage(role: "system", content: "You are an AI assistant designed to help users reflect on their screen time. Provide only a single, complete question in response to the user's prompt. Your output must always end with a question mark and contain no other punctuation that would make it appear incomplete."),
+            GroqMessage(role: "user", content: userPrompt)
         ]
+
         let requestBody = GroqChatRequest(
             messages: messages,
-            model: "llama3-8b-8192", // The specified Groq model
-            temperature: 0.7,      // A bit of creativity, not too deterministic
-            max_tokens: 60,        // Limit token generation for concise questions
-            stream: false
+            model: "llama3-8b-8192",
+            temperature: 0.7,
+            max_tokens: 120,
+            stream: false,
+            // **** THE FIX IS HERE ****
+            // Reduced the array to 4 items to comply with the API limit.
+            stop: ["?", "\n", "Sure,", "Here's"]
         )
 
-        // Create the URL and URLRequest
         guard let url = URL(string: "https://api.groq.com/openai/v1/chat/completions") else {
             errorMessage = "Invalid API URL."
             isLoading = false
@@ -157,7 +147,6 @@ struct PauseView: View {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(groqAPIKey)", forHTTPHeaderField: "Authorization")
 
-        // Encode the request body to JSON
         do {
             request.httpBody = try JSONEncoder().encode(requestBody)
         } catch {
@@ -166,41 +155,49 @@ struct PauseView: View {
             return
         }
 
-        // Perform the network request asynchronously
         Task {
             do {
                 let (data, response) = try await URLSession.shared.data(for: request)
 
-                // Check for HTTP errors
                 guard let httpResponse = response as? HTTPURLResponse,
                       (200...299).contains(httpResponse.statusCode) else {
                     let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-                    let responseString = String(data: data, encoding: .utf8) ?? "No response data"
+                    // Don't show the full server response to the user, just a friendly message.
                     throw URLError(.badServerResponse, userInfo: [
-                        NSLocalizedDescriptionKey: "Server error: Status \(statusCode). Response: \(responseString)"
+                        NSLocalizedDescriptionKey: "The server could not process the request (Code: \(statusCode)). Please try again."
                     ])
                 }
 
-                // Decode the JSON response
                 let groqResponse = try JSONDecoder().decode(GroqChatResponse.self, from: data)
 
-                // Update UI on the main actor
                 await MainActor.run {
                     withAnimation(.easeInOut(duration: 0.5)) {
-                        if let question = groqResponse.choices.first?.message.content {
-                            currentQuestion = question.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if let receivedQuestion = groqResponse.choices.first?.message.content {
+                            var cleanedQuestion = receivedQuestion.trimmingCharacters(in: .whitespacesAndNewlines)
+                            cleanedQuestion = cleanedQuestion.replacingOccurrences(of: "...", with: "")
+                            cleanedQuestion = cleanedQuestion.replacingOccurrences(of: "…", with: "")
+                            cleanedQuestion = cleanedQuestion.trimmingCharacters(in: .whitespacesAndNewlines)
+                            
+                            if cleanedQuestion.hasSuffix(".") || cleanedQuestion.hasSuffix(",") || cleanedQuestion.hasSuffix("!") {
+                                cleanedQuestion.removeLast()
+                            }
+                            
+                            if !cleanedQuestion.hasSuffix("?") {
+                                cleanedQuestion += "?"
+                            }
+                            
+                            currentQuestion = cleanedQuestion
                         } else {
                             errorMessage = "No question found in Groq response."
                         }
                     }
                 }
             } catch {
-                // Update UI with error on the main actor
                 await MainActor.run {
-                    errorMessage = "Network or decoding error: \(error.localizedDescription)"
+                    // Show the user a clean, localized description of the error
+                    errorMessage = "Error: \(error.localizedDescription)"
                 }
             }
-            // Ensure loading state is reset regardless of success or failure
             await MainActor.run {
                 isLoading = false
             }
@@ -209,7 +206,6 @@ struct PauseView: View {
 }
 
 // MARK: - Preview Provider
-
 struct PauseView_Previews: PreviewProvider {
     static var previews: some View {
         PauseView()
